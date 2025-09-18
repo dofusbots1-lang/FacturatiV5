@@ -3,12 +3,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLicense } from '../../contexts/LicenseContext';
 import { Invoice } from '../../contexts/DataContext';
 import TemplateRenderer from '../templates/TemplateRenderer';
-import ProTemplateModal from '../license/ProTemplateModal';
 import { useNavigate } from 'react-router-dom';
 
 import { X, Download, Edit, Printer } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
-import ReactToPrint from 'react-to-print';
+import { useReactToPrint } from 'react-to-print'; // <<< hook au lieu du composant
 
 interface InvoiceViewerProps {
   invoice: Invoice;
@@ -24,10 +23,9 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
   const navigate = useNavigate();
 
   const [selectedTemplate, setSelectedTemplate] = React.useState(user?.company?.defaultTemplate || 'template1');
-  const [showProModal, setShowProModal] = React.useState(false);
   const [includeSignature, setIncludeSignature] = useState(false);
 
-  // >>> REF pour l'impression
+  // Zone à imprimer
   const printRef = useRef<HTMLDivElement>(null);
 
   const templates = [
@@ -40,10 +38,6 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
 
   // --- PDF via html2pdf (inchangé) ---
   const handleDownloadPDF = () => {
-    generatePDFWithTemplate();
-  };
-
-  const generatePDFWithTemplate = () => {
     const invoiceContent = document.getElementById('invoice-content');
     if (!invoiceContent) {
       alert('Erreur: Contenu de la facture non trouvé');
@@ -85,13 +79,20 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
       });
   };
 
-  // Styles appliqués uniquement pendant l'impression (réglage des marges + couleurs de fond)
+  // Styles appliqués pendant l'impression
   const printPageStyle = `
     @page { margin: 20mm; }
     @media print {
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   `;
+
+  // --- Impression via hook react-to-print (remplace <ReactToPrint />) ---
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    pageStyle: printPageStyle,
+    removeAfterPrint: true,
+  });
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75">
@@ -117,7 +118,7 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
                   </option>
                 ))}
               </select>
-           
+
               {/* PDF */}
               <button
                 onClick={handleDownloadPDF}
@@ -127,22 +128,17 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
                 <span>PDF</span>
               </button>
 
-              {/* Impression (react-to-print) */}
-              <ReactToPrint
-                trigger={() => (
-                  <button
-                    className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-                    title="Imprimer / Exporter en PDF"
-                  >
-                    <Printer className="w-4 h-4" />
-                    <span>Imprimer</span>
-                  </button>
-                )}
-                content={() => printRef.current}
-                pageStyle={printPageStyle}
-              />
+              {/* Impression (hook) */}
+              <button
+                onClick={handlePrint}
+                className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+                title="Imprimer / Exporter en PDF"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimer</span>
+              </button>
 
-              {/* Bouton Modifier */}
+              {/* Modifier */}
               <button
                 onClick={onEdit}
                 className="inline-flex items-center space-x-2 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm transition-colors"
