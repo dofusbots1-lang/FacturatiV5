@@ -13,6 +13,10 @@
   page-break-before: always; /* compatibilité anciennes versions */
   break-before: page;        /* norme moderne */
 }
+.break-before-page {
+  page-break-before: always;
+  break-before: page;
+}
 
 .break-after-page {
   page-break-after: always;
