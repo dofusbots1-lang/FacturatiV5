@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { X, Download, Edit, Printer } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
-import { useReactToPrint } from 'react-to-print'; // <<< hook au lieu du composant
+import { useReactToPrint } from 'react-to-print'; // v3
 
 interface InvoiceViewerProps {
   invoice: Invoice;
@@ -25,7 +25,7 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
   const [selectedTemplate, setSelectedTemplate] = React.useState(user?.company?.defaultTemplate || 'template1');
   const [includeSignature, setIncludeSignature] = useState(false);
 
-  // Zone à imprimer
+  // Zone à imprimer -> DOIT pointer vers un ÉLÉMENT DOM (div)
   const printRef = useRef<HTMLDivElement>(null);
 
   const templates = [
@@ -87,12 +87,15 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
     }
   `;
 
-  // --- Impression via hook react-to-print (remplace <ReactToPrint />) ---
+  // --- Impression via react-to-print v3 -> utiliser contentRef ---
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,                      // <<<<<< ICI la différence
     pageStyle: printPageStyle,
+    documentTitle: `Facture_${invoice.number}`,
     removeAfterPrint: true,
   });
+
+  const nothingToPrint = !printRef.current;    // simple garde
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75">
@@ -118,7 +121,7 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
                   </option>
                 ))}
               </select>
-
+           
               {/* PDF */}
               <button
                 onClick={handleDownloadPDF}
@@ -128,11 +131,16 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
                 <span>PDF</span>
               </button>
 
-              {/* Impression (hook) */}
+              {/* Impression (react-to-print v3) */}
               <button
                 onClick={handlePrint}
-                className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-                title="Imprimer / Exporter en PDF"
+                disabled={nothingToPrint}
+                className={`inline-flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  nothingToPrint
+                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+                title={nothingToPrint ? 'Rien à imprimer' : 'Imprimer / Exporter en PDF'}
               >
                 <Printer className="w-4 h-4" />
                 <span>Imprimer</span>
@@ -160,7 +168,7 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
           {/* Contenu facture (zone imprimable) */}
           <div
             id="invoice-content"
-            ref={printRef}  // <<< IMPORTANT pour react-to-print
+            ref={printRef}  // <<< IMPORTANT : ref sur un élément DOM visible
             style={{ backgroundColor: 'white', padding: '20px' }}
           >
             <TemplateRenderer 
