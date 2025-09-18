@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLicense } from '../../contexts/LicenseContext';
 import { Invoice } from '../../contexts/DataContext';
@@ -8,12 +8,13 @@ import { useNavigate } from 'react-router-dom';
 
 import { X, Download, Edit, Printer } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
+import ReactToPrint from 'react-to-print';
 
 interface InvoiceViewerProps {
   invoice: Invoice;
   onClose: () => void;
   onEdit: () => void;
-  onDownload: () => void;
+  onDownload?: () => void;
   onUpgrade?: () => void;
 }
 
@@ -26,6 +27,9 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
   const [showProModal, setShowProModal] = React.useState(false);
   const [includeSignature, setIncludeSignature] = useState(false);
 
+  // >>> REF pour l'impression
+  const printRef = useRef<HTMLDivElement>(null);
+
   const templates = [
     { id: 'template1', name: 'Classique', isPro: false },
     { id: 'template2', name: 'Moderne Coloré', isPro: true },
@@ -34,11 +38,8 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
     { id: 'template5', name: 'Premium Élégant', isPro: true }
   ];
 
+  // --- PDF via html2pdf (inchangé) ---
   const handleDownloadPDF = () => {
-    generatePDFWithTemplate();
-  };
-
-  const handlePrint = () => {
     generatePDFWithTemplate();
   };
 
@@ -60,12 +61,8 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
         logging: false,
         backgroundColor: '#ffffff',
       },
-      pagebreak: { mode: ['css', 'legacy'] }, // ✅ multi-pages activées
-      jsPDF: {
-        unit: 'mm',
-        format: 'a4',
-        orientation: 'portrait'
-      }
+      pagebreak: { mode: ['css', 'legacy'] },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     html2pdf()
@@ -74,7 +71,6 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
       .toPdf()
       .get('pdf')
       .then((pdf: any) => {
-        // Forcer la gestion multi-pages
         pdf.setProperties({
           title: `Facture ${invoice.number}`,
           subject: 'Facture générée par Facturati',
@@ -88,6 +84,14 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
         alert('Erreur lors de la génération du PDF');
       });
   };
+
+  // Styles appliqués uniquement pendant l'impression (réglage des marges + couleurs de fond)
+  const printPageStyle = `
+    @page { margin: 20mm; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  `;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75">
@@ -123,14 +127,20 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
                 <span>PDF</span>
               </button>
 
-              {/* Impression */}
-              <button
-                onClick={handlePrint}
-                className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Imprimer</span>
-              </button>
+              {/* Impression (react-to-print) */}
+              <ReactToPrint
+                trigger={() => (
+                  <button
+                    className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+                    title="Imprimer / Exporter en PDF"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Imprimer</span>
+                  </button>
+                )}
+                content={() => printRef.current}
+                pageStyle={printPageStyle}
+              />
 
               {/* Bouton Modifier */}
               <button
@@ -151,8 +161,12 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
             </div>
           </div>
 
-          {/* Contenu facture */}
-          <div id="invoice-content" style={{ backgroundColor: 'white', padding: '20px' }}>
+          {/* Contenu facture (zone imprimable) */}
+          <div
+            id="invoice-content"
+            ref={printRef}  // <<< IMPORTANT pour react-to-print
+            style={{ backgroundColor: 'white', padding: '20px' }}
+          >
             <TemplateRenderer 
               templateId={selectedTemplate}
               data={invoice}
@@ -165,4 +179,3 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
     </div>
   );
 }
-
