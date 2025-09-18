@@ -154,3 +154,4 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
     </div>
   );
 }
+
