@@ -12,35 +12,53 @@ export default function Template2Modern({ data, type, includeSignature = false }
   const { user } = useAuth();
   const title = type === 'invoice' ? 'FACTURE' : 'DEVIS';
 
+  // 🔹 Fonction pour regrouper TVA
+  const getVatGroups = () => {
+    return data.items.reduce(
+      (acc: Record<number, { amount: number; products: string[] }>, item) => {
+        const vatAmount = (item.unitPrice * item.quantity * item.vatRate) / 100;
+        if (!acc[item.vatRate]) acc[item.vatRate] = { amount: 0, products: [] };
+        acc[item.vatRate].amount += vatAmount;
+        // on garde la liste des produits UNIQUEMENT pour TVA ≠ 20
+        if (item.vatRate !== 20) {
+          acc[item.vatRate].products.push(item.description);
+        }
+        return acc;
+      },
+      {}
+    );
+  };
+
+  const vatGroups = getVatGroups();
+
   return (
     <div
-      className="bg-white mx-auto border border-black flex flex-col relative"
+      className="bg-white mx-auto border border-black flex flex-col relative print:page"
       style={{
-    fontFamily: 'Arial, sans-serif',
-    width: '100%',        // prend toute la largeur définie par le wrapper
-    maxWidth: '750px',    // largeur A4
-    height: '1100px',     // hauteur A4
-    display: 'flex',
-  }}
+        fontFamily: 'Arial, sans-serif',
+        width: '100%',
+        maxWidth: '750px',
+        minHeight: '1100px',
+        display: 'flex',
+        pageBreakAfter: 'always'
+      }}
     >
       {/* HEADER */}
       <div className="p-8 border-b border-black bg-black text-white text-center">
         <div className="flex items-center justify-between">
-          {/* Logo */}
           {user?.company.logo && (
             <img src={user.company.logo} alt="Logo" className="h-28 w-auto" />
           )}
-          {/* Nom de l'entreprise centré */}
           <div className="flex-1 text-center">
             <h2 className="text-4xl font-extrabold">{user?.company.name}</h2>
             <h1 className="text-2xl font-bold mt-2">{title}</h1>
           </div>
-          <div className="w-28"></div> {/* espace vide pour équilibrer */}
+          <div className="w-28"></div>
         </div>
       </div>
 
       {/* CONTENU PRINCIPAL */}
-      <div className="flex-1 flex flex-col pb-32"> {/* 🔹 padding bas ajouté */}
+      <div className="flex-1 flex flex-col pb-32">
         {/* CLIENT + DATES */}
         <div className="p-8 border-b border-black">
           <div className="grid grid-cols-2 gap-8">
@@ -58,7 +76,7 @@ export default function Template2Modern({ data, type, includeSignature = false }
                 DATE : {new Date(data.date).toLocaleDateString('fr-FR')}
               </h3>
               <div className="text-sm text-black space-y-1 text-center">
-                <p><strong>{type === 'invoice' ? 'FACTURE' : 'DEVIS'} N° :</strong> {data.number}</p>
+                <p><strong>{title} N° :</strong> {data.number}</p>
               </div>
             </div>
           </div>
@@ -71,7 +89,7 @@ export default function Template2Modern({ data, type, includeSignature = false }
               <thead className="bg-black text-white">
                 <tr>
                   <th className="border-r border-white px-4 py-3 text-center font-bold text-sm">DÉSIGNATION</th>
-                  <th className="border-r border-white px-4 py-3 text-center font-bold text-sm">QUANTITÉ </th>
+                  <th className="border-r border-white px-4 py-3 text-center font-bold text-sm">QUANTITÉ</th>
                   <th className="border-r border-white px-4 py-3 text-center font-bold text-sm">P.U. HT</th>
                   <th className="px-4 py-3 text-center font-bold">TOTAL HT</th>
                 </tr>
@@ -110,32 +128,19 @@ export default function Template2Modern({ data, type, includeSignature = false }
                 <span className="font-medium">{data.subtotal.toFixed(2)} MAD</span>
               </div>
               <div className="text-sm mb-2">
-                {(() => {
-                  const vatGroups = data.items.reduce(
-                    (acc: Record<number, { amount: number; products: string[] }>, item) => {
-                      const vatAmount = (item.unitPrice * item.quantity * item.vatRate) / 100;
-                      if (!acc[item.vatRate]) acc[item.vatRate] = { amount: 0, products: [] };
-                      acc[item.vatRate].amount += vatAmount;
-                      acc[item.vatRate].products.push(item.description);
-                      return acc;
-                    },
-                    {}
-                  );
-                  const vatRates = Object.keys(vatGroups);
-                  return vatRates.map((rate) => (
-                    <div key={rate} className="flex justify-between">
-                      <span>
-                        TVA : {rate}%{' '}
-                        {vatRates.length > 1 && (
-                          <span style={{ fontSize: '10px', color: '#555' }}>
-                            ({vatGroups[+rate].products.join(', ')})
-                          </span>
-                        )}
-                      </span>
-                      <span className="font-medium">{vatGroups[+rate].amount.toFixed(2)} MAD</span>
-                    </div>
-                  ));
-                })()}
+                {Object.keys(vatGroups).map((rate) => (
+                  <div key={rate} className="flex justify-between">
+                    <span>
+                      TVA : {rate}%
+                      {rate !== '20' && vatGroups[+rate].products.length > 0 && (
+                        <span style={{ fontSize: '10px', color: '#555' }}>
+                          ({vatGroups[+rate].products.join(', ')})
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-medium">{vatGroups[+rate].amount.toFixed(2)} MAD</span>
+                  </div>
+                ))}
               </div>
               <div className="flex justify-between text-sm font-bold border-t border-black pt-3">
                 <span>TOTAL TTC :</span>
@@ -144,8 +149,10 @@ export default function Template2Modern({ data, type, includeSignature = false }
             </div>
           </div>
         </div>
+      </div>
 
-        {/* SIGNATURE */}
+      {/* SIGNATURE PAGE SEPAREE */}
+      <div className="print:page-break-before always">
         <div className="p-6">
           <div className="flex justify-start">
             <div className="w-60 bg-gray-50 border border-black rounded p-4 text-center">
@@ -156,9 +163,6 @@ export default function Template2Modern({ data, type, includeSignature = false }
                     src={user.company.signature} 
                     alt="Signature" 
                     className="max-h-18 max-w-full object-contain"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
                   />
                 ) : (
                   <span className="text-gray-400 text-sm"> </span>
@@ -169,7 +173,7 @@ export default function Template2Modern({ data, type, includeSignature = false }
         </div>
       </div>
 
-      {/* FOOTER collé en bas */}
+      {/* FOOTER */}
       <div 
         className="bg-black text-white border-t-2 border-white p-6 text-sm text-center"
         style={{
