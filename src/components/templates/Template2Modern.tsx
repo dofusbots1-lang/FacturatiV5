@@ -151,7 +151,7 @@ export default function Template2Modern({ data, type, includeSignature = false }
         </div>
       </div>
 
-    {/* SIGNATURE PAGE SEPAREE */}
+{/* SIGNATURE SUR NOUVELLE PAGE */}
 <div className="break-before-page p-6">
   <div className="flex justify-start">
     <div className="w-60 bg-gray-50 border border-black rounded p-4 text-center">
