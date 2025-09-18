@@ -89,6 +89,17 @@ export default function QuoteViewer({ quote, onClose, onEdit, onDownload, onUpgr
     html2pdf()
       .set(options)
       .from(quoteContent)
+      .toPdf()
+      .get('pdf')
+      .then((pdf: any) => {
+        // Forcer la gestion multi-pages
+        pdf.setProperties({
+          title: `Devis ${quote.number}`,
+          subject: 'Devis généré par Facturati',
+          author: user?.company?.name || 'Facturati',
+          creator: 'Facturati ERP'
+        });
+      })
       .save()
       .catch((error) => {
         console.error('Erreur lors de la génération du PDF:', error);

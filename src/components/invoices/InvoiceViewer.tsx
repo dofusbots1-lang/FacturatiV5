@@ -71,6 +71,17 @@ export default function InvoiceViewer({ invoice, onClose, onEdit }: InvoiceViewe
     html2pdf()
       .set(options)
       .from(invoiceContent)
+      .toPdf()
+      .get('pdf')
+      .then((pdf: any) => {
+        // Forcer la gestion multi-pages
+        pdf.setProperties({
+          title: `Facture ${invoice.number}`,
+          subject: 'Facture générée par Facturati',
+          author: user?.company?.name || 'Facturati',
+          creator: 'Facturati ERP'
+        });
+      })
       .save()
       .catch((error) => {
         console.error('Erreur lors de la génération du PDF:', error);

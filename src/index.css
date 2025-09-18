@@ -13,10 +13,6 @@
   page-break-before: always; /* compatibilité anciennes versions */
   break-before: page;        /* norme moderne */
 }
-.break-before-page {
-  page-break-before: always;
-  break-before: page;
-}
 
 .break-after-page {
   page-break-after: always;
@@ -26,6 +22,74 @@
 .avoid-break-inside {
   page-break-inside: avoid;
   break-inside: avoid;
+}
+
+/* Styles spécifiques pour l'export PDF multi-pages */
+@media print {
+  /* Forcer l'affichage des headers/footers sur chaque page */
+  thead { 
+    display: table-header-group !important; 
+  }
+  
+  tfoot { 
+    display: table-footer-group !important; 
+  }
+  
+  tbody { 
+    display: table-row-group !important; 
+  }
+  
+  /* Éviter les coupures dans les lignes de tableau */
+  tr { 
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  /* Forcer les sauts de page */
+  .break-before-page {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+  
+  .avoid-break-inside {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  /* Assurer que le contenu ne déborde pas */
+  * {
+    box-sizing: border-box !important;
+  }
+}
+
+/* Configuration spéciale pour html2pdf.js */
+.pdf-container {
+  width: 210mm !important;
+  min-height: 297mm !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: white !important;
+}
+
+/* Styles pour les templates avec structure table */
+.template-table {
+  display: table !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.template-header {
+  display: table-header-group !important;
+}
+
+.template-footer {
+  display: table-footer-group !important;
+}
+
+.template-body {
+  display: table-row-group !important;
 }
 
 /* Amélioration des placeholders en mode sombre */
