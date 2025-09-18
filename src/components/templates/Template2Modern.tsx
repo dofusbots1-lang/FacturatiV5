@@ -12,14 +12,13 @@ export default function Template2Modern({ data, type, includeSignature = false }
   const { user } = useAuth();
   const title = type === 'invoice' ? 'FACTURE' : 'DEVIS';
 
-  // 🔹 Fonction pour regrouper TVA
+  // 🔹 Regroupement TVA
   const getVatGroups = () => {
     return data.items.reduce(
       (acc: Record<number, { amount: number; products: string[] }>, item) => {
         const vatAmount = (item.unitPrice * item.quantity * item.vatRate) / 100;
         if (!acc[item.vatRate]) acc[item.vatRate] = { amount: 0, products: [] };
         acc[item.vatRate].amount += vatAmount;
-        // on garde la liste des produits UNIQUEMENT pour TVA ≠ 20
         if (item.vatRate !== 20) {
           acc[item.vatRate].products.push(item.description);
         }
@@ -33,18 +32,20 @@ export default function Template2Modern({ data, type, includeSignature = false }
 
   return (
     <div
-      className="bg-white mx-auto border border-black flex flex-col relative print:page"
+      className="bg-white mx-auto border border-black"
       style={{
         fontFamily: 'Arial, sans-serif',
         width: '100%',
         maxWidth: '750px',
-        minHeight: '1100px',
-        display: 'flex',
-        pageBreakAfter: 'always'
+        display: 'table',
+        tableLayout: 'fixed'
       }}
     >
-      {/* HEADER */}
-      <div className="p-8 border-b border-black bg-black text-white text-center">
+      {/* HEADER (répété automatiquement) */}
+      <div
+        className="p-8 border-b border-black bg-black text-white text-center"
+        style={{ display: 'table-header-group' }}
+      >
         <div className="flex items-center justify-between">
           {user?.company.logo && (
             <img src={user.company.logo} alt="Logo" className="h-28 w-auto" />
@@ -58,7 +59,7 @@ export default function Template2Modern({ data, type, includeSignature = false }
       </div>
 
       {/* CONTENU PRINCIPAL */}
-      <div className="flex-1 flex flex-col pb-32">
+      <div className="flex-1 flex flex-col pb-8">
         {/* CLIENT + DATES */}
         <div className="p-8 border-b border-black">
           <div className="grid grid-cols-2 gap-8">
@@ -83,7 +84,7 @@ export default function Template2Modern({ data, type, includeSignature = false }
         </div>
 
         {/* TABLE PRODUITS */}
-        <div className="p-8 border-b border-black flex-1">
+        <div className="p-8 border-b border-black">
           <div className="border border-black rounded overflow-hidden">
             <table className="w-full">
               <thead className="bg-black text-white">
@@ -111,9 +112,8 @@ export default function Template2Modern({ data, type, includeSignature = false }
         {/* TOTALS */}
         <div className="p-8">
           <div className="flex justify-between">
-            {/* Bloc gauche */}
             <div className="w-80 bg-gray-50 border border-black rounded p-2">
-              <div className="text-sm font-bold border-black pt-3 text-center pb-4">
+              <div className="text-sm font-bold pt-3 text-center pb-4">
                 <p>Arrêtée le présent {type === 'invoice' ? 'facture' : 'devis'} à la somme de :</p>
               </div>
               <div className="text-sm border-t border-black pt-3">
@@ -121,7 +121,6 @@ export default function Template2Modern({ data, type, includeSignature = false }
               </div>
             </div>
 
-            {/* Bloc droit */}
             <div className="w-80 bg-gray-50 border border-black rounded p-6">
               <div className="flex justify-between text-sm mb-2">
                 <span>Total HT :</span>
@@ -151,38 +150,41 @@ export default function Template2Modern({ data, type, includeSignature = false }
         </div>
       </div>
 
-{/* SIGNATURE SUR NOUVELLE PAGE */}
-<div className="break-before-page p-6">
-  <div className="flex justify-start">
-    <div className="w-60 bg-gray-50 border border-black rounded p-4 text-center">
-      <div className="text-sm font-bold mb-3">Signature</div>
-      <div className="border-2 border-black rounded-sm h-20 flex items-center justify-center relative">
-        {includeSignature && user?.company?.signature ? (
-          <img 
-            src={user.company.signature} 
-            alt="Signature" 
-            className="max-h-18 max-w-full object-contain"
-          />
-        ) : (
-          <span className="text-gray-400 text-sm"> </span>
-        )}
+      {/* SIGNATURE SUR NOUVELLE PAGE */}
+      <div className="break-before-page p-6" style={{ minHeight: '300px' }}>
+        <div className="flex justify-start">
+          <div className="w-60 bg-gray-50 border border-black rounded p-4 text-center">
+            <div className="text-sm font-bold mb-3">Signature</div>
+            <div className="border-2 border-black rounded-sm h-20 flex items-center justify-center relative">
+              {includeSignature && user?.company?.signature ? (
+                <img 
+                  src={user.company.signature} 
+                  alt="Signature" 
+                  className="max-h-18 max-w-full object-contain"
+                />
+              ) : (
+                <span className="text-gray-400 text-sm"> </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
 
-
-      {/* FOOTER */}
-      <div 
-        className="bg-black text-white border-t-2 border-white p-6 text-sm text-center"
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          width: '100%',
-        }}
+      {/* FOOTER (répété automatiquement) */}
+      <div
+        className="bg-black text-white p-6 text-sm text-center"
+        style={{ display: 'table-footer-group' }}
       >
         <p>
-          <strong>{user?.company.name}</strong> | {user?.company.address} | <strong>Tél :</strong> {user?.company.phone} | <strong>ICE :</strong> {user?.company.ice} | <strong>IF:</strong> {user?.company.if} | <strong>RC:</strong> {user?.company.rc} | <strong>CNSS:</strong> {user?.company.cnss} | <strong>Patente :</strong> {user?.company.patente} | <strong>EMAIL :</strong> {user?.company.email} | <strong>SITE WEB :</strong> {user?.company.website}
+          <strong>{user?.company.name}</strong> | {user?.company.address} | 
+          <strong>Tél :</strong> {user?.company.phone} | 
+          <strong>ICE :</strong> {user?.company.ice} | 
+          <strong>IF:</strong> {user?.company.if} | 
+          <strong>RC:</strong> {user?.company.rc} | 
+          <strong>CNSS:</strong> {user?.company.cnss} | 
+          <strong>Patente :</strong> {user?.company.patente} | 
+          <strong>EMAIL :</strong> {user?.company.email} | 
+          <strong>SITE WEB :</strong> {user?.company.website}
         </p>
       </div>
     </div>
